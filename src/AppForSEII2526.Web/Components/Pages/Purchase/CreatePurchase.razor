@@ -1,0 +1,161 @@
+@page "/purchases/createpurchase"
+@attribute [Authorize]
+@using AppForSEII2526.Web.API
+@inject AppForSEII2526APIClient api
+@inject PurchaseStateContainer purchaseState
+@inject NavigationManager nav
+@using Microsoft.AspNetCore.Authorization
+
+
+<h3>Create Purchase</h3>
+
+@if (purchaseState.Purchase.Items.Count == 0)
+{
+    <div class="alert alert-info">Your cart is empty.</div>
+}
+else
+{
+    <div id="orderSummaryCard" class="card mb-4">
+        <div class="card-header">Order Summary</div>
+        <div class="table-responsive">
+            <table id="orderSummaryTable" class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Brand</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in purchaseState.Purchase.Items)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@item.Brand</td>
+                            <td>@item.Quantity</td>
+                            <td>@item.UnitPrice �</td>
+                            <td>@(item.UnitPrice* item.Quantity) �</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="4" class="text-end">Total:</td>
+                        <td>@purchaseState.TotalPriceClient �</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="alert alert-secondary mb-3">
+        Please fill in your delivery and payment details:
+    </div>
+
+    @if (myPaymentMethods == null)
+    {
+        <p>Loading payment methods...</p>
+    }
+    else if (myPaymentMethods.Count == 0)
+    {
+        <div class="alert alert-warning">
+            You don't have any payment methods registered. 
+            <a href="/paymentmethods/create">Please add one first.</a>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="purchaseState.Purchase" OnValidSubmit="Confirm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Street</label>
+                    <InputText id="Street" class="form-control" @bind-Value="purchaseState.Purchase.Street" placeholder="Street, Number" />
+                    <ValidationMessage For="() => purchaseState.Purchase.Street" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">City</label>
+                    <InputText id="City" class="form-control" @bind-Value="purchaseState.Purchase.City" placeholder="City" />
+                    <ValidationMessage For="() => purchaseState.Purchase.City" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Postal Code</label>
+                    <InputText id="PostalCode" class="form-control" @bind-Value="purchaseState.Purchase.PostalCode" placeholder="Postal Code" />
+                    <ValidationMessage For="() => purchaseState.Purchase.PostalCode" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Name</label>
+                    <InputText id="NameCustomer" class="form-control" @bind-Value="purchaseState.Purchase.NameCustomer" placeholder="Name" />
+                    <ValidationMessage For="() => purchaseState.Purchase.NameCustomer" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Surname</label>
+                    <InputText id="SurnameCustomer" class="form-control" @bind-Value="purchaseState.Purchase.SurnameCustomer" placeholder="Surname" />
+                    <ValidationMessage For="() => purchaseState.Purchase.SurnameCustomer" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Payment Method</label>
+                    <InputSelect id="PaymentMethodId" class="form-select" @bind-Value="purchaseState.Purchase.PaymentMethodId">
+                        <option value="0">-- Select a payment method --</option>
+                        @foreach (var method in myPaymentMethods)
+                        {
+                            <option value="@method.Id">@method.Description</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => purchaseState.Purchase.PaymentMethodId" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Rating (0-5)</label>
+                    <InputNumber id="Rating" class="form-control" @bind-Value="purchaseState.Purchase.Rating" />
+                    <ValidationMessage For="() => purchaseState.Purchase.Rating" />
+                </div>
+            </div>
+            <button id="btnConfirmPurchase" class="btn btn-success mt-3" type="submit">Confirm purchase</button>
+        </EditForm>
+    }
+}
+
+@if (!string.IsNullOrWhiteSpace(errors))
+{
+    <div class="alert alert-warning mt-3">@errors</div>
+}
+
+@code {
+    private string? errors;
+    private ICollection<PaymentMethodDTO>? myPaymentMethods;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            myPaymentMethods = await api.GetMyPaymentMethodsAsync();
+        }
+        catch (System.Exception ex)
+        {
+            errors = "Error loading payment methods: " + ex.Message;
+        }
+    }
+
+    private async Task Confirm()
+    {
+        errors = null;
+        try
+        {
+            var created = await api.CreatePurchaseAsync(purchaseState.Purchase);
+            purchaseState.ClearCart();
+            // Redirecci�n al paso 7 (Details)
+            nav.NavigateTo($"/purchase/detailpurchase?PurchaseID={created.Id}");
+        }
+        catch (AppForSEII2526.Web.API.ApiException ex)
+        {
+            errors = ex.Message;
+        }
+        catch (System.Exception ex)
+        {
+            errors = ex.Message;
+        }
+    }
+}

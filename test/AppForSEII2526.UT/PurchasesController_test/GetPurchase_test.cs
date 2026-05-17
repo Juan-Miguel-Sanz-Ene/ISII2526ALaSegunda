@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AppForSEII2526.API.Controllers;
 using AppForSEII2526.API.DTOs.PurchaseOrderDTOs;
@@ -10,27 +11,10 @@ using Xunit;
 
 namespace AppForSEII2526.UT.PurchasesController_test
 {
-    public class GetPurchase_test : AppForSEII2526SqliteUT
+    public class GetPurchases_test : AppForSEII2526SqliteUT
     {
-        [Fact]
-        [Trait("Database", "SQLite:Memory")]
-        [Trait("LevelTesting", "Unit Testing")]
-        public async Task GetPurchase_NotFound_test()
+        public GetPurchases_test()
         {
-            var logger = new Mock<ILogger<PurchasesController>>().Object;
-            var ctrl = new PurchasesController(_context, logger);
-
-            var result = await ctrl.GetPurchase(0);
-
-            Assert.IsType<NotFoundResult>(result);
-        }
-
-        [Fact]
-        [Trait("Database", "SQLite:Memory")]
-        [Trait("LevelTesting", "Unit Testing")]
-        public async Task GetPurchase_Found_test()
-        {
-
             var brand = new Brand { Id = 1, Name = "Zara", Location = "Madrid" };
             var prod1 = new Product { ProductId = 1, Name = "Jacket", Colour = "Red", Price = 20.0m, Stock = 10, IsReturnable = true, Brand = brand };
             var prod2 = new Product { ProductId = 2, Name = "Shirt", Colour = "Blue", Price = 10.0m, Stock = 10, IsReturnable = false, Brand = brand };
@@ -48,7 +32,7 @@ namespace AppForSEII2526.UT.PurchasesController_test
             };
             var pm = new Bizum { User = user, TelephoneNumber = "+34600111222" };
             _context.AddRange(user, pm);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
 
             var order = new PurchaseOrder
             {
@@ -56,64 +40,76 @@ namespace AppForSEII2526.UT.PurchasesController_test
                 Street = "Calle Inventada",
                 PostalCode = "02001",
                 NameSurname = "Pepe Pérez",
-                Date = System.DateTime.Now, 
+                Date = System.DateTime.Now,
                 State = PurchaseState.Request,
                 Customer = user,
                 PaymentMethodId = pm.Id,
-                TotalPrice = 0m 
+                TotalPrice = 0m,
+                Rating = 5 // <-- Adding the optional rating to the DB
             };
             _context.PurchaseOrders.Add(order);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
 
             var line1 = new PurchaseProduct { PurchaseOrderId = order.Id, ProductId = prod1.ProductId, Price = prod1.Price, Quantity = 2 };
             var line2 = new PurchaseProduct { PurchaseOrderId = order.Id, ProductId = prod2.ProductId, Price = prod2.Price, Quantity = 1 };
             _context.PurchaseProducts.AddRange(line1, line2);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
 
-            order.TotalPrice = line1.Price * line1.Quantity + line2.Price * line2.Quantity; 
+            order.TotalPrice = line1.Price * line1.Quantity + line2.Price * line2.Quantity;
             _context.PurchaseOrders.Update(order);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
+        }
 
-            var expectedId = order.Id;
-            var expectedDate = order.Date;
-            var expectedTotal = order.TotalPrice;
+        [Fact]
+        public async Task GetPurchase_Successful_Test()
+        {
+            //arrange
+            Mock<ILogger<PurchasesController>> mockLogger = new Mock<ILogger<PurchasesController>>();
+            PurchasesController sut = new PurchasesController(_context, mockLogger.Object);
 
-            var logger = new Mock<ILogger<PurchasesController>>().Object;
-            var ctrl = new PurchasesController(_context, logger);
+            //act
+            var result = await sut.GetPurchase(1);
 
-            var result = await ctrl.GetPurchase(expectedId);
+            //assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actualPurchaseDTO = Assert.IsType<PurchaseForDetailDTO>(okResult.Value);
 
-            var ok = Assert.IsType<OkObjectResult>(result);
-            var dto = Assert.IsType<PurchaseForDetailDTO>(ok.Value);
+            var expectedItems = new List<PurchaseItemDTO>
+            {
+                new PurchaseItemDTO(1, "Jacket", "Zara", "Red",  20.0m, 2),
+                new PurchaseItemDTO(2, "Shirt",  "Zara", "Blue", 10.0m, 1)
+            };
 
-            Assert.Equal(expectedId, dto.Id);
-            Assert.Equal(expectedTotal, dto.TotalPrice);
-            Assert.Equal(expectedDate, dto.Date);
-            Assert.Equal("Calle Inventada", dto.Street);
-            Assert.Equal("Albacete", dto.City);
-            Assert.Equal("02001", dto.PostalCode);
-            Assert.Equal("Pepe Pérez", dto.NameSurname);
+            var expectedPurchaseDTO = new PurchaseForDetailDTO(
+                id:             1,
+                totalPrice:     50.0m,
+                date:           actualPurchaseDTO.Date,   // non-deterministic; taken from actual
+                street:         "Calle Inventada",
+                city:           "Albacete",
+                postalCode:     "02001",
+                nameSurname:    "Pepe Pérez",
+                state:          "Request",
+                paymentMethod:  "Bizum",
+                customerUserName: "pepe@test.com",
+                items:          expectedItems,
+                rating:         5
+            );
 
-            Assert.Equal(PurchaseState.Request.ToString(), dto.State);
-            Assert.Equal("Bizum", dto.PaymentMethod);
+            Assert.Equal(expectedPurchaseDTO, actualPurchaseDTO);
+        }
 
-            Assert.Equal("pepe@test.com", dto.CustomerUserName);
+        [Fact]
+        public async Task GetPurchase_NotFound_test()
+        {
+            //arrange
+            Mock<ILogger<PurchasesController>> mockLogger = new Mock<ILogger<PurchasesController>>();
+            PurchasesController sut = new PurchasesController(_context, mockLogger.Object);
 
-            Assert.Equal(2, dto.Items.Count);
+            //act
+            var result = await sut.GetPurchase(0);
 
-            var item1 = dto.Items.Single(i => i.ProductId == prod1.ProductId);
-            Assert.Equal("Jacket", item1.Name);
-            Assert.Equal("Zara", item1.Brand);
-            Assert.Equal("Red", item1.Colour);
-            Assert.Equal(20.0m, item1.UnitPrice);
-            Assert.Equal(2, item1.Quantity);
-
-            var item2 = dto.Items.Single(i => i.ProductId == prod2.ProductId);
-            Assert.Equal("Shirt", item2.Name);
-            Assert.Equal("Zara", item2.Brand);
-            Assert.Equal("Blue", item2.Colour);
-            Assert.Equal(10.0m, item2.UnitPrice);
-            Assert.Equal(1, item2.Quantity);
+            //Assert
+            Assert.IsType<NotFoundResult>(result);
         }
     }
 }

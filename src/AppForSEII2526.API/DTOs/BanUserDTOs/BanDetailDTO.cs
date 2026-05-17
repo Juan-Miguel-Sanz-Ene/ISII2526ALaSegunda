@@ -9,8 +9,6 @@ namespace AppForSEII2526.API.DTOs.BanUserDTOs
     {
         private object value;
 
-       
-
         public BanDetailDTO(int id,
             string reason,
             string detailedDescription,
@@ -59,5 +57,10 @@ namespace AppForSEII2526.API.DTOs.BanUserDTOs
                    State == dto.State &&
                    ReportedUsers.SequenceEqual(dto.ReportedUsers);
         }
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
     }
 }

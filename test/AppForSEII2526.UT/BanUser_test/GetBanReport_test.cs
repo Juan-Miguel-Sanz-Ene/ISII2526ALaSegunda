@@ -81,12 +81,11 @@ namespace AppForSEII2526.UT.BanReportsController_test
             var reportCustomer = new ReportCustomer
             {
                 BanReportId = banReport.ID,
-                CustomerId = 1,
+                CustomerId = "1",
                 State = ReportState.InProgress,
                 Message = "Your account has been banned.",
                 BanReport = banReport,
-                User = user1,
-                ApplicationCustomer = user1
+                Customer = user1
             };
 
             banReport.ReportCustomers.Add(reportCustomer);
@@ -112,14 +111,14 @@ namespace AppForSEII2526.UT.BanReportsController_test
                 "In progress",
                 new List<ReportCustomerForDetailDTO>
                 {
-                    new ReportCustomerForDetailDTO(1, "Juan", "García", "Your account has been banned.")
+                    new ReportCustomerForDetailDTO("1", "Juan", "García", "Your account has been banned.")
                 }
             );
 
             return new List<object[]>
             {
-                new object[] { 1, expected },   // BF: Report exists
-                new object[] { 999, null }      // AF1: Report not found
+                new object[] { 1, expected },   
+                new object[] { 999, null }      
             };
         }
 
@@ -130,22 +129,20 @@ namespace AppForSEII2526.UT.BanReportsController_test
         [MemberData(nameof(TestCasesFor_GetBanReport))]
         public async Task UC_BF_AF1_GetBanReport_Test(int reportId, BanDetailDTO expected)
         {
-            // Arrange
+            
             var mockLogger = new Mock<ILogger<BanController>>();
             var controller = new BanController(_context, mockLogger.Object);
 
-            // Act
             var result = await controller.GetBanReport(reportId);
 
-            // Assert
             if (expected == null)
             {
-                // AF1: Report not found
+                
                 Assert.IsType<NotFoundResult>(result);
             }
             else
             {
-                // BF: Report exists
+              
                 var ok = Assert.IsType<OkObjectResult>(result);
                 var actual = Assert.IsType<BanDetailDTO>(ok.Value);
 
@@ -160,7 +157,7 @@ namespace AppForSEII2526.UT.BanReportsController_test
                 Assert.Equal(expected.ReportedUsers[0].CustomerId, actual.ReportedUsers[0].CustomerId);
                 Assert.Equal(expected.ReportedUsers[0].Name, actual.ReportedUsers[0].Name);
                 Assert.Equal(expected.ReportedUsers[0].Surname, actual.ReportedUsers[0].Surname);
-                Assert.Equal(expected.ReportedUsers[0].PersonalMessage, actual.ReportedUsers[0].PersonalMessage);
+                Assert.Equal(expected.ReportedUsers[0].Message, actual.ReportedUsers[0].Message);
             }
         }
     }

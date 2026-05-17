@@ -5,8 +5,7 @@
 @inject AppForSEII2526APIClient apiclient
     
 <h3>DetailDeliveryAssignment</h3>
-@* @attribute [Authorize]
- *@
+@attribute [Authorize]
 @if (deliveryAssignment == null)
 {
     <p>@error</p>
@@ -28,15 +27,15 @@ else
         </tr>
         <tr>
             <th>Delivery Assignment Done</th>
-            <td id="DeliveryAssignmentDonde">@deliveryAssignment.DeliveryAssignmentDone.ToString("dd/MM/yyyy hh:mm:ss")</td>
+            <td id="DeliveryAssignmentDone">@deliveryAssignment.DeliveryAssignmentDone.ToString("dd/MM/yyyy hh:mm:ss")</td>
         </tr>
         <tr>
             <th>Extra Reward</th>
-            <td id="ExtraReward">@deliveryAssignment.ExtraReward</td>
+            <td id="ExtraReward">@deliveryAssignment.ExtraReward €</td>
         </tr>
     </table>
 
-    <table class="table" id="Assigned Deliveries">
+    <table class="table" id="AssignedDeliveries">
         <thead>
             <tr>
                 <th scope="col">Date</th>

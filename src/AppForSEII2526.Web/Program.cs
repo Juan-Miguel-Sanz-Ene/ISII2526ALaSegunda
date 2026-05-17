@@ -43,6 +43,8 @@ builder.Services.AddScoped<AppForSEII2526APIClient>(sp => new AppForSEII2526APIC
 
 builder.Services.AddScoped<DeleveryAssignmentStateContainer>();
 
+builder.Services.AddScoped<PurchaseStateContainer>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

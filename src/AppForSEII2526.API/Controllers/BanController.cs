@@ -1,13 +1,15 @@
 ﻿using AppForSEII2526.API.DTOs.BanUserDTOs;
 using AppForSEII2526.API.Models;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 
 namespace AppForSEII2526.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    
     public class BanController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -35,7 +37,7 @@ namespace AppForSEII2526.API.Controllers
             var banReport = await _context.BanReports
                 .Where(r => r.ID == id) 
                 .Include(r => r.ReportCustomers)
-                    .ThenInclude(rc => rc.ApplicationCustomer)
+                    .ThenInclude(rc => rc.Customer)
                 .Select(r => new BanDetailDTO(
 
                     r.ID,
@@ -43,11 +45,11 @@ namespace AppForSEII2526.API.Controllers
                     r.DetailedDescription,
                     r.StartDate,
                     r.EndDate,
-                    "In progress",
+                    r.State == ReportState.InProgress ? "In progress" : "Completed",
                     r.ReportCustomers.Select(rc => new ReportCustomerForDetailDTO(
                             rc.CustomerId,
-                            rc.ApplicationCustomer.Name,
-                            rc.ApplicationCustomer.Surname,
+                            rc.Customer.Name,
+                            rc.Customer.Surname,
                             rc.Message
                         )).ToList()
                 ))
@@ -63,8 +65,35 @@ namespace AppForSEII2526.API.Controllers
 
         }
 
+        [HttpPost]
+        [Route("CreateBanReport")]
+        [ProducesResponseType(typeof(BanDetailDTO), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> CreateBanReport([FromBody] BanReportForCreateDTO dto)
+        {
+            if (dto == null)
+                return BadRequest("Invalid ban report");
 
+            var banReport = new BanReport
+            {
+                Reason = dto.Reason,
+                DetailedDescription = dto.DetailedDescription,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                State = ReportState.InProgress,
+                ReportCustomers = dto.Customers.Select(c => new ReportCustomer
+                {
+                    CustomerId = c.CustomerId,
 
+                    Message = c.Message
+                }).ToList()
+            };
+
+            _context.BanReports.Add(banReport);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetBanReport), new { id = banReport.ID }, banReport.ID);
+        }
 
     }
 }

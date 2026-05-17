@@ -1,69 +1,204 @@
 ﻿@page "/banuser/selectusersforbanning"
 
-
+@using Microsoft.AspNetCore.Authorization
 @using AppForSEII2526.Web.API
+@using AppForSEII2526.API.DTOs.BanUserDTOs
 @inject AppForSEII2526APIClient apiclient
 @inject ILogger<SelectUsersForBanning> logger
+@inject BanReportStateContainer State
+@inject NavigationManager navigation
+@inject AppForSEII2526APIClient apiClient
+@inject AppForSEII2526APIClient api
 
 
-<h3>SelectuUersForBanning</h3>
+
+@attribute [Authorize]
+
+<h3>Select Users For Banning</h3>
+
 <div class="container-fluid">
+
+    <!-- ERROR PANEL -->
     <div class="row" hidden="@hideErrors">
-        <p>here i will show the errors</p>
+        <p>Errors: @errors</p>
     </div>
+
     <div class="row">
         <div class="col-8">
-            <div class="row">
-                <p>here i will show the filters</p>
-                <div class ="col">
-                    <button type="button" class="btn btn-primary" @onclick=@BanUser id="banUsers">Ban Users</button>
+
+            <!-- FILTERS -->
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="input-group">
+                        <span class="input-group-text">Surname</span>
+                        <input type="text" class="form-control" @bind="surname" placeholder="Surname" />
+                    </div>
                 </div>
 
+                <div class="col">
+                    <div class="input-group">
+                        <span class="input-group-text">Complaint Type</span>
+                        <input type="text" class="form-control" @bind="complaintType" placeholder="Complaint Type" />
+                    </div>
+                </div>
+
+                <div class="col">
+                    <button class="btn btn-primary" @onclick="LoadFilteredUsers">
+                        Search Users
+                    </button>
+                </div>
             </div>
+
+            <!-- TABLE -->
             <div class="row">
-                <p>here i will show x</p>
-                @if (ban == null)
+                @if (users == null)
                 {
-                    <p>loading banned users...</p>
+                    <p>Loading users...</p>
+                }
+                else if (users.Count == 0)
+                {
+                    <p>No users found.</p>
                 }
                 else
                 {
-                    < p > banned users loaded @ban.Count</ p >
+                    <div class="mh-100 table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Surname</th>
+                                    <th>Complaints</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var u in users)
+                                {
+                                    <tr>
+                                        <td>@u.Name</td>
+                                        <td>@u.Surname</td>
+                                        <td>@u.ComplaintCount</td>
+                                        <td>
+                                            <button class="btn btn-outline-secondary"
+                                                    @onclick="() => AddToBan(u)">
+                                                Add
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 }
             </div>
-        </div>
-        <div class="col-2">
-            <p>here i will show y</p>
+
         </div>
 
+        <!-- SELECTED USERS -->
+        <div class="col-2" hidden="@hiddenBanList">
+            <div class="row">
+                <h3>Selected Users</h3>
+            </div>
+
+            @foreach (var user in State.BanReport.Users)
+            {
+                <div class="row mb-1">
+                    <button class="btn btn-light"
+                            @onclick="() => RemoveFromBan(user)">
+                        x @user.CustomerId
+                    </button>
+                </div>
+            }
+
+            <div class="row mt-3">
+                <button class="btn btn-primary" @onclick="BanUsers">
+                    Ban Users
+                </button>
+            </div>
+        </div>
     </div>
-
 </div>
 
 @code {
-    private ICollection<ApplicationUserForBanningDTO> ban;
-    private bool hideErrors { get { return errors.Length == 0; } }
+
+    private ICollection<AppForSEII2526.API.DTOs.BanUserDTOs.UserComplaintsDTO> users;
     private string errors = "";
-    private string username { get; set; }
-    private string complainttype { get; set; }
+    private bool hideErrors => errors.Length == 0;
 
+    private string? surname { get; set; }
+    private string? complaintType { get; set; }
 
-    public async void BanUser()
+    private bool hiddenBanList =>
+        State.BanReport.Users.Count == 0;
+
+    protected override Task OnInitializedAsync()
+    {
+        LoadFilteredUsers();
+        return base.OnInitializedAsync();
+    }
+
+    private async void LoadFilteredUsers()
     {
         try
         {
-           
-         
+            var apiUsers = await apiclient.GetUsersForBanningAsync(surname, complaintType);
+
+            users = apiUsers.Select(u => new AppForSEII2526.API.DTOs.BanUserDTOs.UserComplaintsDTO
+
+            {
+                Id = u.Id,
+                Name = u.UserName,
+                Surname = u.Surname,
+                ComplaintCount = u.Complaints?.Count ?? 0,
+                ComplaintTypes = u.Complaints?.Select(c => c.Type).ToList()
+            }).ToList();
         }
         catch (ApiException ex)
         {
             logger.LogError($"{DateTime.Now} Error: {ex}");
-            errors = "Error while connecting to the system";
+            errors = "Error loading users";
         }
+
         StateHasChanged();
     }
 
-    
+    private void AddToBan(AppForSEII2526.API.DTOs.BanUserDTOs.UserComplaintsDTO user)
+    {
+        State.AddCustomer(user);
+    }
+
+    private void RemoveFromBan(AppForSEII2526.API.DTOs.BanUserDTOs.ReportCustomerForCreateDTO user)
+    {
+        State.RemoveCustomer(user);
+    }
 
 
+    // private async Task BanUsers()
+    // {
+    //     try
+    //     {
+    //         await apiClient.CreateBanReportAsync(new AppForSEII2526.API.DTOs.BanUserDTOs.BanReportForCreateDTO
+    //         {
+    //             Reason = "Multiple complaints",
+    //             DetailedDescription = "This user has multiple complaints against them.",
+    //             StartDate = DateTime.Now,
+    //             EndDate = DateTime.Now.AddMonths(1),
+    //             Customers = State.BanReport.Users.Select(u => new ReportCustomerForCreateDTO { CustomerId = u.CustomerId }).ToList()
+    //         });
+
+
+    //         State.Clear();
+
+    //         navigation.NavigateTo("/"); // vuelve al home
+    //     }
+    //     catch (ApiException ex)
+    //     {
+    //         logger.LogError($"Error banning users: {ex}");
+    //         errors = "Error banning users.";
+    //     }
+    // }
+    private void BanUsers(MouseEventArgs args)
+    {
+        throw new NotImplementedException();
+    }
 }

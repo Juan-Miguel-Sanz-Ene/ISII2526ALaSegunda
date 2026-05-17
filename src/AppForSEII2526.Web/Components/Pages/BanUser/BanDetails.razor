@@ -1,0 +1,43 @@
+﻿@page "/banuser/bandetails/{Id:int}"
+
+@using AppForSEII2526.Web.API
+@inject AppForSEII2526APIClient api
+
+<h3 id="banDetailsTitle">Ban Report Details</h3>
+
+@if (NotFound)
+{
+    <div id="banNotFoundMessage" class="alert alert-danger">Ban report not found</div>
+}
+else if (Report == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card p-3">
+        <p><b>Reason:</b> @Report.Reason</p>
+        <p><b>Description:</b> @Report.DetailedDescription</p>
+        <p><b>Start:</b> @Report.StartDate</p>
+        <p><b>End:</b> @Report.EndDate</p>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private BanDetailDTO? Report;
+    private bool NotFound = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Report = await api.GetBanReportAsync(Id);
+        }
+        catch
+        {
+            NotFound = true;
+        }
+    }
+}

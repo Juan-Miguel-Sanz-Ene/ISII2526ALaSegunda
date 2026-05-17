@@ -53,8 +53,27 @@
                    State == dTO.State &&
                    PaymentMethod == dTO.PaymentMethod &&
                    CustomerUserName == dTO.CustomerUserName &&
-                   EqualityComparer<IList<PurchaseItemDTO>>.Default.Equals(Items, dTO.Items) &&
-                   Rating == dTO.Rating; 
+                   Items.SequenceEqual(dTO.Items) &&
+                   Rating == dTO.Rating;
+        }
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(Id);
+            hash.Add(TotalPrice);
+            hash.Add(Date);
+            hash.Add(Street);
+            hash.Add(City);
+            hash.Add(PostalCode);
+            hash.Add(NameSurname);
+            hash.Add(State);
+            hash.Add(PaymentMethod);
+            hash.Add(CustomerUserName);
+            hash.Add(Rating);
+            foreach (var item in Items)
+                hash.Add(item);
+            return hash.ToHashCode();
         }
     }
 }

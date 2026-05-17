@@ -1,0 +1,145 @@
+﻿@page "/purchase/detailpurchase"
+@attribute [Authorize]
+@using AppForSEII2526.Web.API
+@using Microsoft.AspNetCore.Authorization
+@inject AppForSEII2526APIClient api
+
+<h3>Purchase Details</h3>
+
+@if (purchase == null)
+{
+  
+    if (error == "Error! You are not authorized to see this purchase details.")
+    {
+        <div class="alert alert-info">
+            <h4>Debug Info:</h4>
+            <ul>
+                <li><strong>Usuario Logueado (userName):</strong> '@userName'</li>
+                <li><strong>Usuario del Pedido (DTO):</strong> '@(purchase?.CustomerUserName ?? "null")'</li>
+                <li><strong>¿Es Autenticado?:</strong> @authenticationState?.Result?.User?.Identity?.IsAuthenticated</li>
+                <li><strong>¿Está en Rol 'Client'?:</strong> @authenticationState?.Result?.User?.IsInRole("Client")</li>
+            </ul>
+        </div>
+    }
+
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    <table class="table table-borderless table-sm">
+        <tr>
+            <th>Order ID</th>
+            <td>@purchase.Id</td>
+        </tr>
+        <tr>
+            <th>Name and Surname</th>
+            <td id="NameSurname">@purchase.NameSurname</td>
+        </tr>
+        <tr>
+            <th>Delivery Address</th>
+            <td id="DeliveryAddress">@purchase.Street, @purchase.City (@purchase.PostalCode)</td>
+        </tr>
+        <tr>
+            <th>Payment Method</th>
+            <td id="PaymentMethod">@purchase.PaymentMethod</td>
+        </tr>
+        <tr>
+            <th>Purchase Date</th>
+            <td id="PurchaseDate">@purchase.Date.ToString("dd/MM/yyyy HH:mm:ss")</td>
+        </tr>
+        <tr>
+            <th>State</th>
+            <td id="State">@purchase.State</td>
+        </tr>
+    </table>
+
+    <h4>Purchased Products</h4>
+
+    <table class="table table-striped" id="PurchasedProducts">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Brand</th>
+                <th scope="col">Colour</th>
+                <th scope="col">Quantity</th>
+                <th scope="col">Unit Price</th>
+                <th scope="col">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (PurchaseItemDTO item in purchase.Items)
+            {
+                <tr id="PurchaseItem_@item.Name">
+                    <td>@item.Name</td>
+                    <td>@item.Brand</td>
+                    <td>@item.Colour</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.UnitPrice €</td>
+                    <td>@(item.UnitPrice* item.Quantity) €</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th scope="row" colspan="5" class="text-end">Total Price</th>
+                <td id="TotalPrice" class="fw-bold">@purchase.TotalPrice €</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="mt-3">
+        <a href="/" class="btn btn-secondary">Back to Menu</a>
+    </div>
+}
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int PurchaseID { get; set; }
+
+    private PurchaseForDetailDTO? purchase;
+    private string error = "Loading...";
+    private string userName = ""; // Variable para guardar el nombre local
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user is not null && user.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                userName = user.Identity.Name ?? "";
+            }
+        }
+
+        try
+        {
+            purchase = await api.GetPurchaseAsync(PurchaseID);
+        }
+        catch (AppForSEII2526.Web.API.ApiException)
+        {
+            purchase = null;
+        }
+
+        if (purchase == null)
+        {
+            error = $"Error! Purchase with id={PurchaseID} not found.";
+        }
+        else
+        {
+            // Eliminate mayusc errors
+            bool isSameUser = string.Equals(purchase.CustomerUserName, userName, StringComparison.OrdinalIgnoreCase);
+
+            if (!isSameUser)
+            {
+                purchase = null;
+                error = "Error! You are not authorized to see this purchase details.";
+            }
+        }
+    }
+}

@@ -1,0 +1,21 @@
+﻿@using AppForSEII2526.Web.API
+
+
+@code {
+    private string Surname = "";
+    private string ComplaintType = "";
+   
+    private List<string> SelectedUsers = new();
+
+    
+
+    
+
+    private void ToggleUser(string id)
+    {
+        if (SelectedUsers.Contains(id))
+            SelectedUsers.Remove(id);
+        else
+            SelectedUsers.Add(id);
+    }
+}

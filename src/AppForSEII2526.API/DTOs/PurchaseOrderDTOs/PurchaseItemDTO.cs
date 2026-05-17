@@ -39,5 +39,10 @@
                    UnitPrice == dTO.UnitPrice &&
                    Quantity == dTO.Quantity;
         }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(ProductId, Name, Brand, Colour, UnitPrice, Quantity);
+        }
     }
 }

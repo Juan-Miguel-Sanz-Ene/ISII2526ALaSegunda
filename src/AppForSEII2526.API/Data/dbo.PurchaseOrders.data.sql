@@ -7,6 +7,13 @@ SET IDENTITY_INSERT [dbo].[PaymentMethods] OFF
 SET IDENTITY_INSERT [dbo].[PurchaseOrders] ON
 INSERT INTO [dbo].[PurchaseOrders] ([Id], [City], [Street], [PostalCode], [NameSurname], [Description], [Date], [Rating], [TotalPrice], [State], [CustomerId], [PaymentMethodId]) VALUES (4, N'Ab', N'Av españa', N'02002', N'Alejandro Gomez', NULL, N'2025-10-13 00:00:00', 5, CAST(5.00 AS Decimal(10, 2)), 0, N'1', 1)
 SET IDENTITY_INSERT [dbo].[PurchaseOrders] OFF
+SET IDENTITY_INSERT [dbo].[PurchaseOrders] ON
+INSERT INTO [dbo].[PurchaseOrders] ([Id], [City], [Street], [PostalCode], [NameSurname], [Description], [Date], [Rating], [TotalPrice], [State], [CustomerId], [PaymentMethodId]) VALUES (5, N'Ab', N'Av españa', N'02005', N'Alejandro Gomez', NULL, N'2025-10-13 00:00:00', 5, CAST(5.00 AS Decimal(10, 2)), 0, N'1', 1)
+SET IDENTITY_INSERT [dbo].[PurchaseOrders] OFF
+SET IDENTITY_INSERT [dbo].[PurchaseOrders] ON
+INSERT INTO [dbo].[PurchaseOrders] ([Id], [City], [Street], [PostalCode], [NameSurname], [Description], [Date], [Rating], [TotalPrice], [State], [CustomerId], [PaymentMethodId]) VALUES (1, N'Ab', N'Av españa', N'02003', N'Alejandro Gomez', NULL, N'2025-10-13 00:00:00', 5, CAST(10.00 AS Decimal(10, 2)), 0, N'1', 1)
+SET IDENTITY_INSERT [dbo].[PurchaseOrders] OFF
+
 
 SET IDENTITY_INSERT [dbo].[DeliveryDrivers] ON
 INSERT INTO [dbo].[DeliveryDrivers] ([id], [Available], [Name]) VALUES (1, 1, N'Juan')

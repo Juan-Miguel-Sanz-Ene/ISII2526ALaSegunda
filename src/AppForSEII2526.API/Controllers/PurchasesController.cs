@@ -52,8 +52,8 @@ namespace AppForSEII2526.API.Controllers
                             pp.Product.Colour,
                             pp.Price,
                             pp.Quantity
-                        )).ToList()
-
+                        )).ToList(),
+                    po.Rating
                 ))
                 .FirstOrDefaultAsync();
 
@@ -162,6 +162,7 @@ namespace AppForSEII2526.API.Controllers
             foreach (var it in purchaseForCreate.Items)
             {
                 var p = products.First(x => x.ProductId == it.ProductId);
+                p.Stock -= it.Quantity;
 
                 _context.PurchaseProducts.Add(new PurchaseProduct
                 {
