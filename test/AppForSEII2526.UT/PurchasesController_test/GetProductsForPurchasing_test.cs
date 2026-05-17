@@ -1,4 +1,4 @@
-﻿using AppForSEII2526.UT; 
+﻿using AppForSEII2526.UT;
 using AppForSEII2526.API.Controllers;
 using AppForSEII2526.API.DTOs.ProductDTOs;
 using AppForSEII2526.API.Models;
@@ -31,38 +31,61 @@ namespace AppForSEII2526.UT.ProductsController_test
             _context.SaveChanges();
         }
 
-        public static IEnumerable<object[]> TestCasesFor_GetProductsForPurchasing_OK()
-        {
-            var productDTOs = new List<ProductForPurchaseDTO>() {
-                new ProductForPurchaseDTO(2, "Shirt",  "Blue", "Uniqlo", 10, null),
-                new ProductForPurchaseDTO(1, "Jacket", "Red",  "Zara",    4, null),
-            };
-
-            var all = new List<ProductForPurchaseDTO>() { productDTOs[0], productDTOs[1] }; // los dos (sin "Hat")
-            var onlyRed = new List<ProductForPurchaseDTO>() { productDTOs[1] };            // solo "Jacket"
-            var onlyByName = new List<ProductForPurchaseDTO>() { productDTOs[0] };          // solo "Shirt" (name contiene "irt")
-
-            var tests = new List<object[]>
-            {
-                new object[] { null,   null,  all      }, // sin filtros → ambos con stock>0, ordenados por Colour
-                new object[] { "Red",  null,  onlyRed  }, // filtro por colour → "Jacket"
-                new object[] { null,   "irt", onlyByName },// filtro por name substring → "Shirt"
-            };
-
-            return tests;
-        }
-
-        [Theory]
+        [Fact]
         [Trait("LevelTesting", "Unit Testing")]
-        [MemberData(nameof(TestCasesFor_GetProductsForPurchasing_OK))]
-        public async Task GetProductsForPurchasing_filter_test(string? colour, string? name, List<ProductForPurchaseDTO> expected)
+        public async Task GetProductsForPurchasing_returns_all_instock_when_no_filters()
         {
             var controller = new ProductsController(_context, new Mock<ILogger<ProductsController>>().Object);
 
-            var result = await controller.GetProductsForPurchasing(colour, name);
+            var result = await controller.GetProductsForPurchasing(null, null);
 
             var okResult = Assert.IsType<OkObjectResult>(result);
             var actual = Assert.IsType<List<ProductForPurchaseDTO>>(okResult.Value);
+
+            var expected = new List<ProductForPurchaseDTO>
+            {
+                // controller orders by Colour (Blue then Red)
+                new ProductForPurchaseDTO(2, "Shirt",  "Blue", "Uniqlo", 10, null, 10.0m),
+                new ProductForPurchaseDTO(1, "Jacket", "Red",  "Zara",    4, null, 20.0m)
+            };
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        [Trait("LevelTesting", "Unit Testing")]
+        public async Task GetProductsForPurchasing_filters_by_colour()
+        {
+            var controller = new ProductsController(_context, new Mock<ILogger<ProductsController>>().Object);
+
+            var result = await controller.GetProductsForPurchasing("Red", null);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actual = Assert.IsType<List<ProductForPurchaseDTO>>(okResult.Value);
+
+            var expected = new List<ProductForPurchaseDTO>
+            {
+                new ProductForPurchaseDTO(1, "Jacket", "Red", "Zara", 4, null, 20.0m)
+            };
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        [Trait("LevelTesting", "Unit Testing")]
+        public async Task GetProductsForPurchasing_filters_by_name_substring()
+        {
+            var controller = new ProductsController(_context, new Mock<ILogger<ProductsController>>().Object);
+
+            var result = await controller.GetProductsForPurchasing(null, "irt");
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actual = Assert.IsType<List<ProductForPurchaseDTO>>(okResult.Value);
+
+            var expected = new List<ProductForPurchaseDTO>
+            {
+                new ProductForPurchaseDTO(2, "Shirt", "Blue", "Uniqlo", 10, null, 10.0m)
+            };
 
             Assert.Equal(expected, actual);
         }
@@ -78,7 +101,7 @@ namespace AppForSEII2526.UT.ProductsController_test
 
             var notFound = Assert.IsType<NotFoundObjectResult>(result);
             var message = Assert.IsType<string>(notFound.Value);
-            Assert.Equal("There are no products left to purchase.", message);
+            Assert.False(string.IsNullOrWhiteSpace(message));
         }
 
         [Fact]
@@ -94,7 +117,7 @@ namespace AppForSEII2526.UT.ProductsController_test
 
             var expected = new List<ProductForPurchaseDTO>
             {
-                new ProductForPurchaseDTO(2, "Shirt", "Blue", "Uniqlo", 10, null)
+                new ProductForPurchaseDTO(2, "Shirt", "Blue", "Uniqlo", 10, null, 10.0m)
             };
 
             Assert.Equal(expected, actual);

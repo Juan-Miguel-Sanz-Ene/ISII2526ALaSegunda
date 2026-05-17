@@ -1,4 +1,5 @@
 ﻿using AppForSEII2526.API.DTOs.ApplicationUserDTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,6 +8,7 @@ namespace AppForSEII2526.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    
     public class UsersController : ControllerBase
     {
         private ApplicationDbContext _context;
@@ -36,7 +38,7 @@ namespace AppForSEII2526.API.Controllers
         [HttpGet]
         [Route("[action]")]
         [ProducesResponseType(typeof(IList<ApplicationUserForBanningDTO>), (int) HttpStatusCode.OK)]
-        public async Task<IActionResult> GetUsersForBanning(string? surname, string? ComplaintType) {
+        public async Task<IActionResult> GetUsersWithComplaints(string? surname, string? ComplaintType) {
             IList<ApplicationUserForBanningDTO> applicationUsers = await _context.Users
                     .Where(a =>
 

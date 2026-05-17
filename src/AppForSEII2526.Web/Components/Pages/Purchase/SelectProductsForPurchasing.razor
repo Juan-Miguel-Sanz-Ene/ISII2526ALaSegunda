@@ -1,0 +1,166 @@
+@page "/purchase/selectproductsforpurchasing"
+@attribute [Authorize]
+@using AppForSEII2526.Web.API
+@inject AppForSEII2526APIClient api
+@inject PurchaseStateContainer purchaseState
+@inject NavigationManager nav
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Select Products for Purchasing</h3>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <input id="inputName" class="form-control" placeholder="Name" @bind-value="name" />
+    </div>
+    <div class="col-md-3">
+        <input id="inputColour" class="form-control" placeholder="Colour" @bind-value="colour" />
+    </div>
+    <div class="col-md-3">
+        <button id="btnSearch" class="btn btn-primary" @onclick="Search">Search products</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errors))
+{
+    <div id="errorBox" class="alert alert-warning">@errors</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="table-responsive">
+            <table id="productsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Brand</th>
+                        <th>Colour</th>
+                        <th>Stock</th>
+                        <th>Last City</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (products is null)
+                    {
+                        <tr><td colspan="6">Loading...</td></tr>
+                    }
+                    else if (products.Count == 0)
+                    {
+                        <tr><td colspan="6">No products</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in products)
+                        {
+                            <tr>
+                                <td>@p.Name</td>
+                                <td>@p.Brand</td>
+                                <td>@p.Colour</td>
+                                <td>@p.Stock</td>
+                                <td>@p.City</td>
+                                <td>
+                                    <button id="btnAdd_@p.Name" class="btn btn-sm btn-success" @onclick="(() => AddToCart(p))">Add</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-4">
+        @if (purchaseState.Purchase.Items.Count > 0)
+        {
+            <div id="shoppingCart" class="card">
+                <div class="card-header">Shopping Cart</div>
+                <div class="card-body">
+                    @foreach (var it in purchaseState.Purchase.Items)
+                    {
+                        <div id="cartItem_@it.Name" class="d-flex align-items-center mb-2">
+                            <div class="me-auto">
+                                <div>@it.Name (@it.Brand)</div>
+                                <small class="text-muted">@it.Colour</small>
+                            </div>
+                            <div class="btn-group me-2" role="group">
+                                <button id="btnDecrease_@it.Name" class="btn btn-outline-secondary btn-sm" @onclick="(() => Decrease(it))">-</button>
+                                <span id="qty_@it.Name" class="px-2">@it.Quantity</span>
+                                <button id="btnIncrease_@it.Name" class="btn btn-outline-secondary btn-sm" @onclick="(() => Increase(it))">+</button>
+                            </div>
+                            <button id="btnRemove_@it.Name" class="btn btn-outline-danger btn-sm" @onclick="(() => Remove(it))">x</button>
+                        </div>
+                    }
+                    <div id="cartTotal" class="mt-2">Total: @purchaseState.TotalPriceClient</div>
+                    <button id="btnPurchase" class="btn btn-primary mt-3" @onclick="GoToCreate">Purchase products</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? name;
+    private string? colour;
+    private List<ProductForPurchaseDTO>? products;
+    private string? errors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        purchaseState.OnChange += HandleStateChanged;
+        await Search();
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Search()
+    {
+        errors = null;
+        try
+        {
+            var result = await api.GetProductsForPurchasingAsync(colour, name);
+            products = result.ToList();
+        }
+        catch (AppForSEII2526.Web.API.ApiException ex)
+        {
+            products = new List<ProductForPurchaseDTO>();
+            errors = ex.Message;
+        }
+        catch (System.Exception ex)
+        {
+            products = new List<ProductForPurchaseDTO>();
+            errors = ex.Message;
+        }
+    }
+
+    private void AddToCart(ProductForPurchaseDTO p)
+    {
+        purchaseState.AddProduct(p);
+    }
+
+    private void Increase(PurchaseItemDTO item)
+    {
+        purchaseState.IncreaseQuantity(item);
+    }
+
+    private void Decrease(PurchaseItemDTO item)
+    {
+        purchaseState.DecreaseQuantity(item);
+    }
+
+    private void Remove(PurchaseItemDTO item)
+    {
+        purchaseState.RemoveItem(item);
+    }
+
+    private void GoToCreate()
+    {
+        nav.NavigateTo("/purchases/createpurchase");
+    }
+
+    public void Dispose()
+    {
+        purchaseState.OnChange -= HandleStateChanged;
+    }
+}

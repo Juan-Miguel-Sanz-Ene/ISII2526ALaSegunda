@@ -151,6 +151,9 @@ namespace AppForSEII2526.UIT.Shared {
         //it wait for "seconds" till all the webelements of the page are loaded
         public void ImplicitWait(int seconds) =>
             _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(seconds);
+
+        public void Pause(int milliseconds = 700) =>
+            System.Threading.Thread.Sleep(milliseconds);
     }
 }
 

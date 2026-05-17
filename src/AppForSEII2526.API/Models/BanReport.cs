@@ -20,8 +20,10 @@
 
 
         public List<ReportCustomer> ReportCustomers { get; set; }
+        public ReportState State { get; set; } = ReportState.InProgress;
+        public List<Complaint> Complaints { get; set; } = new();
 
-      
+
 
     }
 }

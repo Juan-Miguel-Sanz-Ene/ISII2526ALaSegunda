@@ -454,8 +454,8 @@ namespace AppForSEII2526.API.Migrations
                     b.Property<int>("BanReportId")
                         .HasColumnType("int");
 
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
+                    b.Property<string>("CustomerId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Message")
                         .HasMaxLength(100)
@@ -464,13 +464,9 @@ namespace AppForSEII2526.API.Migrations
                     b.Property<int>("State")
                         .HasColumnType("int");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("BanReportId", "CustomerId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CustomerId");
 
                     b.ToTable("ReportCustomers");
                 });
@@ -843,20 +839,20 @@ namespace AppForSEII2526.API.Migrations
             modelBuilder.Entity("AppForSEII2526.API.Models.ReportCustomer", b =>
                 {
                     b.HasOne("AppForSEII2526.API.Models.BanReport", "BanReport")
-                        .WithMany("Customer")
+                        .WithMany("ReportCustomers")
                         .HasForeignKey("BanReportId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("AppForSEII2526.API.Models.ApplicationUser", "User")
-                        .WithMany("ReportCustomer")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("AppForSEII2526.API.Models.ApplicationUser", "ApplicationCustomer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("ApplicationCustomer");
 
                     b.Navigation("BanReport");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AppForSEII2526.API.Models.ReturnProduct", b =>
@@ -952,14 +948,12 @@ namespace AppForSEII2526.API.Migrations
 
                     b.Navigation("PurchaseOrders");
 
-                    b.Navigation("ReportCustomer");
-
                     b.Navigation("ReturnOrders");
                 });
 
             modelBuilder.Entity("AppForSEII2526.API.Models.BanReport", b =>
                 {
-                    b.Navigation("Customer");
+                    b.Navigation("ReportCustomers");
                 });
 
             modelBuilder.Entity("AppForSEII2526.API.Models.Brand", b =>

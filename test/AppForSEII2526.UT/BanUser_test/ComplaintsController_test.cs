@@ -94,25 +94,25 @@ namespace AppForSEII2526.UT.BanUser_test
             string? complaintType,
             IList<UserComplaintsDTO> expected)
         {
-            // Arrange
+            
             var mockLogger = new Mock<ILogger<ComplaintsController>>();
             var controller = new ComplaintsController(_context, mockLogger.Object);
 
-            // Act
+           
             var result = await controller.GetPendingComplaints(
                 new ComplaintFilterDTO { Surname = surname, ComplaintType = complaintType });
 
-            // Assert
+            
             var actionResult = Assert.IsType<ActionResult<ComplaintsResponseDTO>>(result);
             var dto = Assert.IsType<ComplaintsResponseDTO>(actionResult.Value);
 
             if (!expected.Any())
             {
-                // AF2: no complaints
+
                 Assert.False(dto.HasComplaints);
                 Assert.Equal("No users with complaints to be addressed.", dto.Message);
 
-                // New: INFO instead of ERROR
+                
                 mockLogger.Verify(
                     x => x.Log(
                         LogLevel.Information,
@@ -124,7 +124,7 @@ namespace AppForSEII2526.UT.BanUser_test
             }
             else
             {
-                // BF / AF1
+                
                 Assert.True(dto.HasComplaints);
 
                 var expectedOrdered = expected.OrderBy(u => u.Surname).ThenBy(u => u.Name).ToList();

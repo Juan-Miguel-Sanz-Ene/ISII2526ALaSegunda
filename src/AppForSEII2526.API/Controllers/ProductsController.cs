@@ -58,8 +58,8 @@ namespace AppForSEII2526.API.Controllers
                     m.Stock,
                     m.PurchaseProducts
                         .Select(pp => pp.PurchaseOrder.City)
-                        .FirstOrDefault()
-
+                        .FirstOrDefault(),
+                    m.Price
                 ))
                 .ToListAsync();
 

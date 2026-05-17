@@ -1,8 +1,13 @@
-﻿
-namespace AppForSEII2526.API.DTOs.PurchaseOrderDTOs
+﻿namespace AppForSEII2526.API.DTOs.PurchaseOrderDTOs
 {
     public class PurchaseForCreateDTO
     {
+        
+        public PurchaseForCreateDTO()
+        {
+            Items = new List<PurchaseItemDTO>();
+        }
+
         public PurchaseForCreateDTO(string street, string city, string postalCode, string nameCustomer, string surnameCustomer, IList<PurchaseItemDTO> items, int paymentMethodId, int? rating)
         {
             Street = street;
@@ -12,6 +17,7 @@ namespace AppForSEII2526.API.DTOs.PurchaseOrderDTOs
             SurnameCustomer = surnameCustomer;
             Items = items;
             PaymentMethodId = paymentMethodId;
+            Rating = rating;  // Fix: assign rating parameter
         }
 
         [Required, StringLength(120, MinimumLength = 3)]

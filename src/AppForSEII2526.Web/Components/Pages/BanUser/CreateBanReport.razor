@@ -1,0 +1,112 @@
+﻿@page "/banuser/createbanreport"
+
+@using AppForSEII2526.Web.API
+@using AppForSEII2526.API.DTOs.BanUserDTOs;
+@inject AppForSEII2526APIClient api
+@inject NavigationManager nav
+
+<h3>Create Ban Report</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div id="banErrorMessage" class="alert alert-danger">@ErrorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(SuccessMessage))
+{
+    <div id="banSuccessMessage" class="alert alert-success">@SuccessMessage</div>
+}
+
+<div class="card p-3">
+    <div class="mb-3">
+        <label class="form-label">Reason</label>
+        <InputText id="reason" class="form-control" @bind-Value="Reason" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea id="description" class="form-control" @bind-Value="Description" />
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Start Date</label>
+            <InputDate id="startDate" class="form-control" @bind-Value="StartDate" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">End Date</label>
+            <InputDate id="endDate" class="form-control" @bind-Value="EndDate" />
+        </div>
+    </div>
+
+    <button id="submitBanReportButton" class="btn btn-danger mt-3" @onclick="Submit">
+        Submit Ban Report
+    </button>
+</div>
+
+@code {
+    private string Reason = "";
+    private string Description = "";
+    private DateTime StartDate = DateTime.Today;
+    private DateTime EndDate = DateTime.Today.AddDays(1);
+
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
+
+    private List<string> Users = new();
+
+    protected override void OnInitialized()
+    {
+        var uri = nav.ToAbsoluteUri(nav.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var users = query["users"];
+
+        if (!string.IsNullOrEmpty(users))
+            Users = users.Split(',').ToList();
+    }
+
+    private async Task Submit()
+    {
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        if (string.IsNullOrWhiteSpace(Reason) || string.IsNullOrWhiteSpace(Description))
+        {
+            ErrorMessage = "Reason and description are required";
+            return;
+        }
+
+        if (Users.Count == 0)
+        {
+            ErrorMessage = "At least one user must be selected";
+            return;
+        }
+
+        if (EndDate <= StartDate)
+        {
+            ErrorMessage = "End date must be later than start date";
+            return;
+        }
+
+        var dto = new BanReportForCreateDTO
+        {
+            Reason = Reason,
+            DetailedDescription = Description,
+            StartDate = StartDate,
+            EndDate = EndDate,
+            Customers = Users.Select(u => new ReportCustomerForCreateDTO { CustomerId = u }).ToList()
+        };
+
+        // try
+        // {
+        //     var created = await api.CreateBanReportAsync(dto);
+        //     SuccessMessage = "Ban report created successfully";
+        //     nav.NavigateTo($"/banuser/bandetails/{created}");
+        // }
+        // catch (ApiException ex)
+        // {
+        //     ErrorMessage = ex.Message;
+        // }
+    }
+}

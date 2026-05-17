@@ -1,0 +1,167 @@
+﻿@page "/purchasedelivery/createdeliveryassignment"
+
+@inject NavigationManager navigation
+@using AppForSEII2526.Web.Components.Shared
+@using AppForSEII2526.Web.API
+@using Microsoft.AspNetCore.Authorization
+@inject AppForSEII2526APIClient apiclient
+@inject ILogger<SelectPurchaseOrdersForDelivery> logger
+@inject DeleveryAssignmentStateContainer deleveryAssignmentState
+
+@attribute [Authorize]
+
+<h3>CreateDeliveryAssignment</h3>
+
+@* rental is the object that will be edited thanks to the form *@
+<EditForm Model="deliveryAssignment" OnValidSubmit="OpenDialog">
+    <div class="row">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="row alert alert-danger" />
+    </div>
+    <div class="row alert alert-danger" role="alert" hidden="@hideErrors">
+        <p id="ErrorsShown">Errors: @messageError</p>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            @* Delivery Driver Id (MAndatory) *@
+            <div class="form-floating mb-3">
+                <InputNumber @bind-Value="deliveryAssignment.DeliveryDriverId" class="form-control" id="DelieveryDriver" min="0" />
+                <label for="DeliveryDriver">Delivery Driver ID *</label>
+                <ValidationMessage For="@(() => deliveryAssignment.DeliveryDriverId)" />
+            </div>
+        </div>
+        @* Delivery Deadline (Mandatory) *@
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <InputDate @bind-Value="deliveryAssignment.DeliveryAssignmentDone" class="form-control" id="DeliveryDeadline" />
+                <label for="DeliveryDeadline">Delivery Deadline *</label>
+                <ValidationMessage For="@(() => deliveryAssignment.DeliveryAssignmentDone)" />
+            </div>
+        </div>
+    </div>
+    <div class="row g-3">
+        @* Personal Message (Optional) *@
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="deliveryAssignment.PersonalMessage" class="form-control" id="PersonalMessage" />
+                <label for="PersonalMessage">Personal Message (Optional)</label>
+                <ValidationMessage For="@(() => deliveryAssignment.PersonalMessage)" />
+            </div>
+        </div>
+        @* Extra Reward (Optional - max 100€ with 2 decimals) *@
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <InputNumber @bind-Value="deliveryAssignment.ExtraReward" class="form-control" id="ExtraReward" step="0.01" min="0" max="100" />
+                <label for="ExtraReward">Extra Reward € (Optional, max 100€)</label>
+                <ValidationMessage For="@(() => deliveryAssignment.ExtraReward)" />
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md">
+            <div class="form-floating">
+                <button class="btn btn-primary" type="submit" id="Submit">
+                    Deliver your assignments
+                </button>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="form-floating">
+                <button class="btn btn-outline-primary" type="submit" @onclick="ModifyPurchaseDeliveries" id="ModifyPurchaseDeliveries">
+                    Modify Purchase Deliveries
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="mh-100 table-responsive">
+        <table class="table table-condensed table-hover" id="TableOfRentalItems">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Genre</th>
+                    <th>Price For Renting</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in deliveryAssignment.PurchaseDeliveries)
+                {
+                    <tr id="PurchaseData_@item.Date">
+                        <td>@item.Street</td>
+                        <td>@item.City</td>
+                        <td>@item.PostalCode</td>
+                        <td>
+                            <InputSelect @bind-Value="item.Priority" class="form-select">
+                                @foreach (var priority in Enum.GetValues<PriorityType>())
+                                {
+                                    <option value="@priority">@priority</option>
+                                }
+                            </InputSelect>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</EditForm>
+
+@if (DialogIsOpen)
+{
+    <Dialog Caption="Purchase DEliveries"
+        Message="Do you want to proceed to assign the selected deliveries?"
+        OnClose="@OnDialogClose"
+        Type=Dialog.Category.SaveNot>
+    </Dialog>
+}
+
+@code {
+    private string messageError = "";
+    private bool hideErrors { get { return messageError.Length == 0; } }
+    private bool DialogIsOpen;
+    private DeliveryAssignmentForCreateDTO deliveryAssignment => deleveryAssignmentState.DeliveryAssgnment;
+
+    private void OpenDialog()
+    {
+        DialogIsOpen = true;
+    }
+
+    private async Task OnDialogClose(bool isOk)
+    {
+
+        DialogIsOpen = false;
+        if (isOk)
+        {
+            if (deliveryAssignment.PurchaseDeliveries.Count > 0)
+            {
+                try
+                {                    
+                    var delivered = await apiclient.CreateDeliveryAssignmentAsync(deliveryAssignment);
+                    deleveryAssignmentState.RentalProcessed();
+                    navigation.NavigateTo($"/purchasedelivery/detaildeliveryassignment/?DeliveryAssignmentID={delivered.Id}");
+                }
+                catch (ApiException<ValidationProblemDetails> apiexceptionvalidation)
+                {
+
+                    if (apiexceptionvalidation.Result.Errors.Values != null)
+                    {
+                        messageError = "";
+                        foreach (var errors in apiexceptionvalidation.Result.Errors.Values)
+                            //https://learn.microsoft.com/en-us/dotnet/api/system.string.join?view=net-7.0
+                            messageError = string.Join("(*) ", messageError, string.Join(" (*) ", errors));
+                    }
+                }
+                catch (ApiException apiexception)
+                {
+                    messageError = "Error while processing your request, please try again later!";
+
+                }
+
+            }
+        }
+    }
+
+    private void ModifyPurchaseDeliveries()
+    {
+        navigation.NavigateTo("/purchasedelivery/selectpurchaseordersfordelivery");
+    }
+}
